@@ -32,7 +32,6 @@ for (package in required_packages) {
 
 ## 2. Retrieve data
 
-
 ```{r, echo=FALSE}
 # Get the path of the current R script
 path <- dirname(rstudioapi::getSourceEditorContext()$path)
@@ -89,31 +88,49 @@ head(data)
 ```
 
 
-```{r}
+
+
+```{r, echo=FALSE}
+# Get the path of the current R script
+path <- dirname(rstudioapi::getSourceEditorContext()$path)
+
+# Set the working directory to the path of the current R script
+setwd(path)
+
+# Check the current working directory
+#getwd()
+
 #new data (different mutation rates)
 file_path_dif_mutation <- "2024-12-12-17h 55minsimulationS3_without_burnin.txt"
 data_dif_mutation <- fread(file_path_dif_mutation, header = TRUE, sep = "\t", fill = TRUE)
 
-colnames(data_dif_mutation) <- c("Replicate","generation","Mutation_Rate", "clonalrate", "Nb_alleles_tot", "Number_alleles_Tot" , "Number_fixed_loci_Tot", "Mean_He_Tot" ,  "Mean_Ho_Tot" , "Mean_FIS_Tot", "Var_FIS_Tot", "Number_Genotypes_Tot","R_Tot", "Pareto_beta_Tot","List_distribution_gen_clonal_genotypes")
+colnames(data_dif_mutation) <- c("Replicate","Generation","Mutation_Rate", "clonalrate", "Nb_alleles_tot", "Number_alleles_Tot" , "Number_fixed_loci_Tot", "Mean_He_Tot" ,  "Mean_Ho_Tot" , "Mean_FIS_Tot", "Var_FIS_Tot", "Number_Genotypes_Tot","R_Tot", "Pareto_beta_Tot","List_distribution_gen_clonal_genotypes")
+
 
 #Remove rows contain NA 
-data_dif_mutation <- data_dif_mutation %>% drop_na()
+#data_dif_mutation <- data_dif_mutation %>% drop_na() 
 
-data_dif_mutation_m4_N4 <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter(Mutation_Rate == "1e-06")
+# Filter the data, alleles 4 and mutation rate 1e-06 and generation every 10
+data <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter(Mutation_Rate == 0.000001) %>% filter (Generation %% 10 == 0)
+head (data)
 
-data_dif_mutation_m4_N4$Mean_FIS_Tot <- as.numeric(data_dif_mutation_m4_N4$Mean_FIS_Tot)
+#data_dif_mutation_m4_N4$Mean_FIS_Tot <- as.numeric(data_dif_mutation_m4_N4$Mean_FIS_Tot)
+```
 
+
+##??
+```{r, echo=FALSE}
 
 # Prepare data
 data_prepared <- data_dif_mutation_m4_N4 %>%
   # Convert to numeric
   mutate(Mean_FIS_Tot = as.numeric(Mean_He_Tot)) %>%
   # Remove exact duplicates
-  distinct(generation, clonalrate, Mean_He_Tot, .keep_all = TRUE) # duplicated rows didn't removed??
+  distinct(Generation, clonalrate, Mean_He_Tot, .keep_all = TRUE) # duplicated rows didn't removed??
 
 
 # Create the contour plot
-ggplot(data_prepared, aes(x = generation, y = clonalrate, z = Mean_He_Tot)) +
+ggplot(data_prepared, aes(x = Generation, y = clonalrate, z = Mean_He_Tot)) +
   geom_contour_filled() +  # Filled contour plot
   geom_contour(color = "black", size = 0.5, alpha = 0.5) +  # Add contour lines
   scale_fill_viridis_d(name = "Mean FIS ") +  # Color palette
@@ -126,7 +143,7 @@ ggplot(data_prepared, aes(x = generation, y = clonalrate, z = Mean_He_Tot)) +
   guides(fill = guide_colorsteps(barwidth = 1, barheight = 10))
 
 
-ggplot(data_prepared, aes(x = log(generation), y = clonalrate)) +
+ggplot(data_prepared, aes(x = log(Generation), y = clonalrate)) +
   geom_point(aes(size = 10, color = Mean_He_Tot), alpha = 0.2) +
   scale_color_viridis_c() +
   scale_size_continuous(range = c(1, 10)) +
@@ -150,93 +167,159 @@ ggplot(data_prepared, aes(x = log(generation), y = clonalrate)) +
 ```{r, echo=FALSE}
 
 # Create the boxplot for R
-plot_R <- ggplot(data, aes(x = as.factor(clonalrate), y = R)) +
-  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.shape = 16) +  # Boxplot with outliers in red
+plot_R <- ggplot(data, aes(x = as.factor(clonalrate), y = R_Tot)) +
+  geom_boxplot(alpha = 0.8,
+    outlier.color = "grey50",
+    outlier.shape = 16,
+    fill = "#4B9CD3", 
+    color = "black"
+  ) +
   labs(
     x = NULL,
     y = "R"
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 13) +
   theme(
-    legend.position = "none",  # Remove the legend if not needed
-    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels
-  ) 
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
 
 
 # Create the boxplot for Pareto_beta
-plot_Pareto_beta <- ggplot(data, aes(x = as.factor(clonalrate), y = Pareto_beta)) +
-  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.shape = 16) +  # Boxplot with outliers in red
+plot_Pareto_beta <- ggplot(data, aes(x = as.factor(clonalrate), y = Pareto_beta_Tot)) +
+  geom_boxplot(alpha = 0.8,
+    outlier.color = "grey50",
+    outlier.shape = 16,
+    fill = "#4B9CD3", 
+    color = "black"
+  ) +
   labs(
     x = NULL,
-    y = "β (Pareto)"
+    y = expression(italic(β) * " Pareto")
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 13) +
   theme(
-    legend.position = "none",  # Remove the legend if not needed
-    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels
-  ) 
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA),  
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
 
 
-# Create the boxplot for Var_FIS
-plot_Var_FIS <- ggplot(data, aes(x = as.factor(clonalrate), y = Var_FIS)) +
-  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.shape = 16) +  # Boxplot with outliers in red
+#Creat the boxplot for Var_FIS
+plot_Var_FIS <- ggplot(data, aes(x = as.factor(clonalrate), y = Var_FIS_Tot)) +
+  geom_boxplot(alpha = 0.8,
+    outlier.color = "grey50",
+    outlier.shape = 16,
+    fill = "#4B9CD3", 
+    color = "black"
+  ) +
+  labs(
+    x = "Clonal rate",
+    y = expression("Var("*italic(F)[IS]*")")
+) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+
+# Creat the boxplot for Mean_FIS
+plot_Mean_FIS <- ggplot(data, aes(x = as.factor(clonalrate), y = Mean_FIS_Tot)) +
+  geom_boxplot(alpha = 0.8,
+    outlier.color = "grey50",
+    outlier.shape = 16,
+    fill = "#4B9CD3", 
+    color = "black"
+  ) +
+  labs(
+    x = "Clonal rate",
+    y = expression("Mean("*italic(F)[IS]*")")
+) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+# Creat the boxplot for Mean_He
+plot_Mean_He <- ggplot(data, aes(x = as.factor(clonalrate), y = Mean_He_Tot)) +
+  geom_boxplot(alpha = 0.8,
+    outlier.color = "grey50",
+    outlier.shape = 16,
+    fill = "#4B9CD3", 
+    color = "black"
+  ) +
   labs(
     x = NULL,
-    y = "Var(Fis)"
+    y = expression(italic(H)[e])
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 13) +
   theme(
-    legend.position = "none",  # Remove the legend if not needed
-    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels
-  ) 
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
 
-# Create the boxplot for Mean_FIS
-plot_Mean_FIS <- ggplot(data, aes(x = as.factor(clonalrate), y = Mean_FIS)) +
-  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.shape = 16) +  # Boxplot with outliers in red
+#Creat the boxplot for Mean_Ho
+plot_Mean_Ho <- ggplot(data, aes(x = as.factor(clonalrate), y = Mean_Ho_Tot)) +
+  geom_boxplot(alpha = 0.8,
+    outlier.color = "grey50",
+    outlier.shape = 16,
+    fill = "#4B9CD3", 
+    color = "black"
+  ) +
   labs(
     x = NULL,
-    y = "Mean Fis"
+    y = expression(italic(H)[o])
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 13) +
   theme(
-    legend.position = "none",  # Remove the legend if not needed
-    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels
-  ) 
-
-
-# Create the boxplot for Mean_r_bar_D
-plot_Mean_r_bar_D <- ggplot(data, aes(x = as.factor(clonalrate), y = Mean_r_bar_D)) +
-  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.shape = 16) +  # Boxplot with outliers in red
-  labs(
-    x = "Clonal rates",
-    y = expression(paste("SD(", bar(r)[D], ")"))
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "none",  # Remove the legend if not needed
-    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels
-  ) 
-
-# Create the boxplot for SD_r_bar_D
-plot_SD_r_bar_D <- ggplot(data, aes(x = as.factor(clonalrate), y = SD_r_bar_D)) +
-  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.shape = 16) +  # Boxplot with outliers in red
-  labs(
-    x = "Clonal rates",
-    y = expression(bar(r)[D])
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "none",  # Remove the legend if not needed
-    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels
-  ) 
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
 
 
 
 
-# Combine the plots
+# Combine the plots 
 # cowplot package
-combined_plot <- plot_grid( plot_R , plot_Pareto_beta,  plot_Var_FIS, plot_Mean_FIS, plot_Mean_r_bar_D, plot_SD_r_bar_D,
-                            labels = c("A", "B", "C", "D", "E", "F"), ncol = 2)
+combined_plot <- plot_grid( plot_Mean_He, plot_Mean_Ho, plot_R , plot_Pareto_beta,  plot_Var_FIS, plot_Mean_FIS, 
+                            labels = c("A", "B", "C", "D", "E","F"), ncol = 2)
 
 # Save plot
 ggsave(
@@ -245,7 +328,7 @@ ggsave(
   width = 25,                  
   height = 20,    
   units = "cm",                   
-  dpi = 300                       
+  dpi = 1200                       
 )
 
 combined_plot
@@ -264,7 +347,7 @@ clone_ages_by_group <- list()
 
 # Process (loop) the data by row 
 for (i in seq_len(nrow(data))) {
-  group_value <- as.character(data[i, 3])  # Convert clonerate to character (ex. "0.7")
+  group_value <- as.character(data[i, 4])  # Convert clonerate to character (ex. "0.7")
   age_distribution <- gsub("[{}]", "", data[i, 15])  # Remove curly braces (ex. {0: 300, 1: 213} → "0: 300, 1: 213")
   split_distribution <- strsplit(age_distribution, ", ")[[1]]  # Split by comma (ex. "0: 300" "1: 213")
   
@@ -317,10 +400,15 @@ Joyplot_plot<- ggplot(df, aes(x = Clone_Age, y = Group, fill = Group)) +
   ) +
   theme_ridges() +
   theme(
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
     plot.title = element_text(size = 16, hjust = 0.5),
     axis.title.x = element_text(size = 14),
     axis.title.y = element_text(size = 14),
-    legend.position = "none"
+    legend.position = "none",
+    
   )
 
 # Save plot
@@ -330,7 +418,7 @@ ggsave(
   width = 30,                  
   height = 20,    
   units = "cm",                   
-  dpi = 300                       
+  dpi = 1200                       
 )
 # Check the lowest value in clone age 
 #min(df$Clone_Age)
@@ -345,18 +433,24 @@ ggsave(
 # Joyplot limit to 40
 joyplot_40 <- ggplot(df, aes(x = Clone_Age, y = Group, fill = Group)) +
   geom_density_ridges(scale = 3, alpha = 0.7) +
+  #scale_fill_viridis_d(option = "C") +
   labs(
-    title = "Clone Ages by Clonerate (Limited to 40)",
+    #title = "Clone Ages by Clonerate (Limited to 40)",
     x = "Clone Age (Generations)",
     y = "Clonerates"
   ) +
   xlim(NA ,40) +  # Set x-axis limits to end at 40
   theme_ridges() +
   theme(
-    plot.title = element_text(size = 16, hjust = 0.5),
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    #plot.title = element_text(size = 16, hjust = 0.5),
     axis.title.x = element_text(size = 14),
     axis.title.y = element_text(size = 14),
-    legend.position = "none"
+    legend.position = "none",
+    
   )
 
 
@@ -368,7 +462,7 @@ ggsave(
   width = 30,                  
   height = 20,    
   units = "cm",                   
-  dpi = 300                       
+  dpi = 1200                       
 )
 
 ```
@@ -441,26 +535,32 @@ parsed_data <- data %>%
 
 # Only specific clonerate 
 # Create movie 0 to 1 clonerate
-parsed_data_0.98 <- parsed_data %>% filter(clonalrate == "0.1", Replicate== "140")
+#parsed_data_0.98 <- parsed_data %>% filter(clonalrate == "0.1", Replicate== "140")
 
 
 # Plot the data 
-scatter_plot_all_ages <- ggplot(parsed_data_0.98, aes(x = Age, y = Count, color = as.factor(clonalrate))) +
-  geom_point(alpha = 0.7) +  # transparency
-  scale_y_log10() +  # Set y-axis to log scale
-  scale_x_log10() +  # Set x-axis to log scale
+scatter_plot_all_ages <- ggplot(parsed_data, aes(x = Age, y = Count, color = as.factor(clonalrate))) +
+  geom_point(alpha = 0.7, size = 2) +  # Increase point size slightly
+  scale_y_log10() +
+  scale_x_log10() +
+  #scale_color_viridis_d(option = "C", end = 0.9) +  # Use perceptually-uniform colors
   labs(
-    title = "Number of individuals vs. Clone age by clonal rate",
-    x = "Age of clones ",
+    x = "Clone age (log scale)",
     y = "Number of individuals (log scale)",
     color = "Clonal rate"
   ) +
-  theme_minimal() +  
+  theme_minimal(base_size = 14) +
   theme(
-    legend.position = "top",  
-    legend.direction = "horizontal"  
+    legend.position = "top",
+    legend.direction = "horizontal",
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 11)
   ) +
-  guides(color = guide_legend(nrow = 1))  # Arrange legend in one row
+  guides(color = guide_legend(nrow = 1))
 
 print(scatter_plot_all_ages)
 
@@ -471,7 +571,7 @@ ggsave(
   width = 40,                  
   height = 20,    
   units = "cm",                   
-  dpi = 300                       
+  dpi = 1200                       
 )
 
 
@@ -507,11 +607,302 @@ animate(p, nframes = 100, fps = 10, width = 1500, height = 800, res = 150, rende
 
 ```
 
+## The relation between population genetic indices, generations and clonerate
+
+```{r, echo=FALSE}
+
+# Plot mean FIS by clonal rate and generation
+plot_Mean_FIS_2 <-  ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_FIS_Tot)) +
+  geom_tile() +
+  scale_fill_viridis_c(option = "viridis", name = expression("Mean("*italic(F)[IS]*")")) +
+  labs(
+    x = "Generation",
+    y = "Clonal Rate",
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+
+# Plot variance of FIS by clonal rate and generation
+plot_Var_FIS_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Var_FIS_Tot)) +
+  geom_tile() +
+  scale_fill_viridis_c(option = "viridis", name = expression("Var("*italic(F)[IS]*")")) +
+  labs(
+    x = "Generation",
+    y = "Clonal Rate",
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+
+ # Plot mean He by clonal rate and generation
+plot_Mean_He_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_He_Tot)) +
+  geom_tile() +
+  scale_fill_viridis_c(option = "viridis", name = expression(italic(H)[e])) +
+  labs(
+    y = "Clonal Rate",
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+
+# Plot mean Ho by clonal rate and generation
+plot_Mean_Ho_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_Ho_Tot)) +
+  geom_tile() +
+  scale_fill_viridis_c(option = "viridis", name = expression(italic(H)[o])) +
+  labs(
+    y = "Clonal Rate",
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+# Plot R by clonal rate and generation
+plot_R_2 <-  ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = R_Tot)) +
+  geom_tile() +
+  scale_fill_viridis_c(option = "viridis", name = "R") +
+  labs(
+    y = "Clonal Rate",
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+
+# Plot Pareto beta by clonal rate and generation
+plot_Pareto_beta_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Pareto_beta_Tot)) +
+  geom_tile() +
+  scale_fill_viridis_c(option = "viridis", name = expression(italic(β) * " Pareto")) +
+  labs(
+    y = "Clonal Rate",
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+
+
+# Combine the plots 
+combined_plot_2 <- plot_grid(plot_Mean_He_2, plot_Mean_Ho_2, plot_R_2 , plot_Pareto_beta_2,  plot_Var_FIS_2, plot_Mean_FIS_2, 
+                            labels = c("A", "B", "C", "D", "E","F"), ncol = 2)
+
+# Save plot
+ggsave(
+  filename = "combined_pop_indices_plot_2.png",  
+  plot = combined_plot_2,           
+  width = 25,                  
+  height = 20,    
+  units = "cm",                   
+  dpi = 1200                       
+)
+
+combined_plot_2
+
+```
+
+
+## R^2 per each replicate
+
+```{r, echo=FALSE}
+# Initialize a data frame to store the results
+r2_results <- data.frame(clonalrate = character(), Replicate = integer(), R2 = numeric(), stringsAsFactors = FALSE)
+
+# Get unique clonal rates
+unique_clonal_rates <- unique(parsed_data$clonalrate)
+
+# Loop over each clonal rate
+for (clonal_rate in unique_clonal_rates) {
+  # Filter data for the current clonal rate
+  parsed_data_clonal <- parsed_data %>%
+    filter(clonalrate == clonal_rate) %>%
+    mutate(log_Count = log(Count))  # Log-transform Count
+
+  # Loop over unique replicates for the current clonal rate
+  for (replicate in unique(parsed_data_clonal$Replicate)) {
+    # Filter data for the current replicate
+    replicate_data <- parsed_data_clonal %>%
+      filter(Replicate == replicate)
+
+    # Calculate R^2 if there are enough data points
+    if (nrow(replicate_data) > 1) {  # Ensure there are at least 2 points
+      lm_fit <- lm(log_Count ~ Age, data = replicate_data)  # Fit linear model
+      r2 <- summary(lm_fit)$r.squared  # Extract R^2 from the model summary
+    } else {
+      r2 <- NA  # If not enough data, assign NA
+    }
+
+    # Store the results
+    r2_results <- rbind(r2_results, data.frame(clonalrate = clonal_rate, Replicate = replicate, R2 = r2))
+  }
+}
+
+# Remove rows where R2 is NA
+r2_results <- r2_results %>% filter(!is.na(R2))
+
+# Convert 'clonalrate' to a factor
+r2_results$clonalrate <- as.factor(r2_results$clonalrate)
+
+# Display the results
+print(r2_results)
+
+
+# Plot 
+R_2_plot<- ggplot(r2_results, aes(x = clonalrate, y = R2)) +
+  geom_violin(fill = "#A4D3EE", color = "#104E8B", alpha = 0.7) +
+  geom_boxplot(width = 0.1, color = "black", outlier.color = "red", outlier.shape = 16) +
+  labs(
+    title = "Distribution of R^2 Values by Clonal Rate",
+    x = "Clonal Rate",
+    y = "R^2"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+# Save plot
+ggsave(
+  filename = "R_2_plot.png",  
+  plot = R_2_plot,           
+  width = 30,                  
+  height = 20,    
+  units = "cm",                   
+  dpi = 300                       
+)
+
+# Without Age zero 
+
+# Initialize a data frame to store the results
+r2_results_Zero <- data.frame(clonalrate = character(), Replicate = integer(), R2 = numeric(), stringsAsFactors = FALSE)
+
+# Get unique clonal rates
+unique_clonal_rates <- unique(parsed_data$clonalrate)
+
+# Loop over each clonal rate
+for (clonal_rate in unique_clonal_rates) {
+  # Filter data for the current clonal rate
+  parsed_data_clonal <- parsed_data %>%
+    filter(clonalrate == clonal_rate) %>%
+    mutate(log_Count = log(Count))  # Log-transform Count
+
+  # Loop over unique replicates for the current clonal rate
+  for (replicate in unique(parsed_data_clonal$Replicate)) {
+    # Filter data for the current replicate and exclude Age == 0
+    replicate_data <- parsed_data_clonal %>%
+      filter(Replicate == replicate, Age > 0)  # Exclude Age == 0
+
+    # Calculate R^2 if there are enough data points
+    if (nrow(replicate_data) > 1) {  # Ensure there are at least 2 points
+      lm_fit <- lm(log_Count ~ Age, data = replicate_data)  # Fit linear model
+      r2 <- summary(lm_fit)$r.squared  # Extract R^2 from the model summary
+    } else {
+      r2 <- NA  # If not enough data, assign NA
+    }
+
+    # Store the results
+    r2_results_Zero <- rbind(r2_results_Zero, data.frame(clonalrate = clonal_rate, Replicate = replicate, R2 = r2))
+  }
+}
+
+# Remove rows where R2 is NA
+r2_results_Zero <- r2_results_Zero %>% filter(!is.na(R2))
+
+# Convert 'clonalrate' to a factor
+r2_results_Zero$clonalrate <- as.factor(r2_results_Zero$clonalrate)
+
+# Display the results
+print(r2_results)
+
+
+# Plot 
+ggplot(r2_results_Zero, aes(x = clonalrate, y = R2)) +
+  geom_violin(fill = "#A4D3EE", color = "#104E8B", alpha = 0.7) +
+  geom_boxplot(width = 0.1, color = "black", outlier.color = "red", outlier.shape = 16) +
+  labs(
+    title = "Distribution of R^2 Values by Clonal Rate (Excluding Age 0)",
+    x = "Clonal Rate",
+    y = "R^2"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+```
+
+```{r, echo=FALSE}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Age zero R and C value
 ```{r, echo=FALSE}
 # Boxplot
-ggplot(data, aes(x = as.factor(clonalrate), y = R)) +
+ggplot(data, aes(x = as.factor(clonalrate), y = R_Tot)) +
   geom_boxplot(fill = "#FFDDC1", color = "#FF5733", outlier.color = "red", outlier.shape = 16) +
   labs(
     title = "Boxplot of R ratio by clonal rate",
@@ -547,7 +938,7 @@ ggplot(age_zero_data, aes(x = as.factor(clonalrate), y = (Count/1000))) +
 summary_table <- parsed_data %>%
   group_by(clonalrate) %>%
   summarise(
-    Mean_R = mean(R, na.rm = TRUE),  # Mean of R for each clonalrate
+    Mean_R = mean(R_Tot, na.rm = TRUE),  # Mean of R for each clonalrate
     Mean_Age_Zero = mean(Count[Age == 0], na.rm = TRUE)  # Mean count for Age zero for each clonalrate
   ) %>%
   ungroup()
@@ -773,136 +1164,6 @@ ggplot(slope_results_Zero, aes(x = clonalrate, y = Slope)) +
 
 
 
-## R^2 per each replicate
-
-```{r, echo=FALSE}
-# Initialize a data frame to store the results
-r2_results <- data.frame(clonalrate = character(), Replicate = integer(), R2 = numeric(), stringsAsFactors = FALSE)
-
-# Get unique clonal rates
-unique_clonal_rates <- unique(parsed_data$clonalrate)
-
-# Loop over each clonal rate
-for (clonal_rate in unique_clonal_rates) {
-  # Filter data for the current clonal rate
-  parsed_data_clonal <- parsed_data %>%
-    filter(clonalrate == clonal_rate) %>%
-    mutate(log_Count = log(Count))  # Log-transform Count
-
-  # Loop over unique replicates for the current clonal rate
-  for (replicate in unique(parsed_data_clonal$Replicate)) {
-    # Filter data for the current replicate
-    replicate_data <- parsed_data_clonal %>%
-      filter(Replicate == replicate)
-
-    # Calculate R^2 if there are enough data points
-    if (nrow(replicate_data) > 1) {  # Ensure there are at least 2 points
-      lm_fit <- lm(log_Count ~ Age, data = replicate_data)  # Fit linear model
-      r2 <- summary(lm_fit)$r.squared  # Extract R^2 from the model summary
-    } else {
-      r2 <- NA  # If not enough data, assign NA
-    }
-
-    # Store the results
-    r2_results <- rbind(r2_results, data.frame(clonalrate = clonal_rate, Replicate = replicate, R2 = r2))
-  }
-}
-
-# Remove rows where R2 is NA
-r2_results <- r2_results %>% filter(!is.na(R2))
-
-# Convert 'clonalrate' to a factor
-r2_results$clonalrate <- as.factor(r2_results$clonalrate)
-
-# Display the results
-print(r2_results)
-
-
-# Plot 
-R_2_plot<- ggplot(r2_results, aes(x = clonalrate, y = R2)) +
-  geom_violin(fill = "#A4D3EE", color = "#104E8B", alpha = 0.7) +
-  geom_boxplot(width = 0.1, color = "black", outlier.color = "red", outlier.shape = 16) +
-  labs(
-    title = "Distribution of R^2 Values by Clonal Rate",
-    x = "Clonal Rate",
-    y = "R^2"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "none"
-  )
-
-# Save plot
-ggsave(
-  filename = "R_2_plot.png",  
-  plot = R_2_plot,           
-  width = 30,                  
-  height = 20,    
-  units = "cm",                   
-  dpi = 300                       
-)
-
-# Without Age zero 
-
-# Initialize a data frame to store the results
-r2_results_Zero <- data.frame(clonalrate = character(), Replicate = integer(), R2 = numeric(), stringsAsFactors = FALSE)
-
-# Get unique clonal rates
-unique_clonal_rates <- unique(parsed_data$clonalrate)
-
-# Loop over each clonal rate
-for (clonal_rate in unique_clonal_rates) {
-  # Filter data for the current clonal rate
-  parsed_data_clonal <- parsed_data %>%
-    filter(clonalrate == clonal_rate) %>%
-    mutate(log_Count = log(Count))  # Log-transform Count
-
-  # Loop over unique replicates for the current clonal rate
-  for (replicate in unique(parsed_data_clonal$Replicate)) {
-    # Filter data for the current replicate and exclude Age == 0
-    replicate_data <- parsed_data_clonal %>%
-      filter(Replicate == replicate, Age > 0)  # Exclude Age == 0
-
-    # Calculate R^2 if there are enough data points
-    if (nrow(replicate_data) > 1) {  # Ensure there are at least 2 points
-      lm_fit <- lm(log_Count ~ Age, data = replicate_data)  # Fit linear model
-      r2 <- summary(lm_fit)$r.squared  # Extract R^2 from the model summary
-    } else {
-      r2 <- NA  # If not enough data, assign NA
-    }
-
-    # Store the results
-    r2_results_Zero <- rbind(r2_results_Zero, data.frame(clonalrate = clonal_rate, Replicate = replicate, R2 = r2))
-  }
-}
-
-# Remove rows where R2 is NA
-r2_results_Zero <- r2_results_Zero %>% filter(!is.na(R2))
-
-# Convert 'clonalrate' to a factor
-r2_results_Zero$clonalrate <- as.factor(r2_results_Zero$clonalrate)
-
-# Display the results
-print(r2_results)
-
-
-# Plot 
-ggplot(r2_results_Zero, aes(x = clonalrate, y = R2)) +
-  geom_violin(fill = "#A4D3EE", color = "#104E8B", alpha = 0.7) +
-  geom_boxplot(width = 0.1, color = "black", outlier.color = "red", outlier.shape = 16) +
-  labs(
-    title = "Distribution of R^2 Values by Clonal Rate (Excluding Age 0)",
-    x = "Clonal Rate",
-    y = "R^2"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "none"
-  )
-
-```
 
 
 
@@ -1032,13 +1293,13 @@ ggplot(residuals_long_c01, aes(x = Age, y = Residual, color = as.factor(Clonal_R
 
 ```{r}
 # Merge slope results with population genetics data on clonal rate and replicate
-merged_slope_parsed_data <- merge(slope_results, parsed_data %>% select(clonalrate, Replicate,Mean_FIS, Var_FIS,Mean_r_bar_D, SD_r_bar_D, R, Pareto_beta),
+merged_slope_parsed_data <- merge(slope_results, parsed_data %>% select(clonalrate, Replicate,Mean_FIS_Tot, Var_FIS_Tot, R_Tot, Pareto_beta_Tot),
                      by.x = c("clonalrate", "Replicate"),
                      by.y = c("clonalrate", "Replicate"))
 
 
 # Plot Slope vs Var_FIS for each clonal rate
-ggplot(merged_slope_parsed_data, aes(x = Var_FIS, y = exp(Slope), color = as.factor(clonalrate))) +
+ggplot(merged_slope_parsed_data, aes(x = Var_FIS_Tot, y = exp(Slope), color = as.factor(clonalrate))) +
   geom_point(size = 3, alpha = 0.7) +  # Scatter plot
   geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +  # Linear regression line for each clonal rate
   labs(
@@ -1054,7 +1315,7 @@ ggplot(merged_slope_parsed_data, aes(x = Var_FIS, y = exp(Slope), color = as.fac
   )
 
 # Plot Slope vs Mean_FIS for each clonal rate
-ggplot(merged_slope_parsed_data, aes(x = Mean_FIS, y = exp(Slope), color = as.factor(clonalrate))) +
+ggplot(merged_slope_parsed_data, aes(x = Mean_FIS_Tot, y = exp(Slope), color = as.factor(clonalrate))) +
   geom_point(size = 3, alpha = 0.7) +  # Scatter plot
   geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +  # Linear regression line for each clonal rate
   labs(
@@ -1072,7 +1333,7 @@ ggplot(merged_slope_parsed_data, aes(x = Mean_FIS, y = exp(Slope), color = as.fa
 
 
 # Plot Slope vs R for each clonal rate
-ggplot(merged_slope_parsed_data, aes(x = R, y = exp(Slope), color = as.factor(clonalrate))) +
+ggplot(merged_slope_parsed_data, aes(x = R_Tot, y = exp(Slope), color = as.factor(clonalrate))) +
   geom_point(size = 3, alpha = 0.7) +  # Scatter plot
   geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +  # Linear regression line for each clonal rate
   labs(
@@ -1088,7 +1349,7 @@ ggplot(merged_slope_parsed_data, aes(x = R, y = exp(Slope), color = as.factor(cl
   )
 
 # Plot Slope vs Pareto_beta for each clonal rate
-ggplot(merged_slope_parsed_data, aes(x = Pareto_beta, y = exp(Slope), color = as.factor(clonalrate))) +
+ggplot(merged_slope_parsed_data, aes(x = Pareto_beta_Tot, y = exp(Slope), color = as.factor(clonalrate))) +
   geom_point(size = 3, alpha = 0.7) +  # Scatter plot
   geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +  # Linear regression line for each clonal rate
   labs(
