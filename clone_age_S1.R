@@ -18,7 +18,7 @@ Remember to re-run this code every time you re-open this R Notebook.
 ```{r, echo=FALSE}
 #Code to install packages if necessary, and read them with library function
 
-required_packages <- c("knitr","rmarkdown","ggridges","data.table","ggplot2","gganimate","dplyr","tidyr","cowplot", "reshape2")
+required_packages <- c("knitr","rmarkdown","ggridges","data.table","ggplot2","gganimate","dplyr","tidyr","cowplot", "reshape2","ggcorrplot")
 for (package in required_packages) {
   if (package %in% row.names(installed.packages())) {
     library(package, character.only = TRUE)
@@ -610,6 +610,7 @@ animate(p, nframes = 100, fps = 10, width = 1500, height = 800, res = 150, rende
 ## The relation between population genetic indices, generations and clonerate
 
 ```{r, echo=FALSE}
+# group by generation and calculate the median per each indices
 
 # Plot mean FIS by clonal rate and generation
 plot_Mean_FIS_2 <-  ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_FIS_Tot)) +
@@ -746,6 +747,7 @@ combined_plot_2
 ```
 
 
+
 ## R^2 per each replicate
 
 ```{r, echo=FALSE}
@@ -768,116 +770,172 @@ for (clonal_rate in unique_clonal_rates) {
     replicate_data <- parsed_data_clonal %>%
       filter(Replicate == replicate)
 
-    # Calculate R^2 if there are enough data points
+    # Calculate R^2  and slopes if there are enough data points
     if (nrow(replicate_data) > 1) {  # Ensure there are at least 2 points
       lm_fit <- lm(log_Count ~ Age, data = replicate_data)  # Fit linear model
       r2 <- summary(lm_fit)$r.squared  # Extract R^2 from the model summary
+      # Calculate slope
+      slope <- coef(lm_fit)["Age"]  # Extract slope (coefficient for Age)
     } else {
       r2 <- NA  # If not enough data, assign NA
     }
 
     # Store the results
-    r2_results <- rbind(r2_results, data.frame(clonalrate = clonal_rate, Replicate = replicate, R2 = r2))
+    r2_results <- rbind(r2_results, data.frame(clonalrate = clonal_rate, Replicate = replicate, R2 = r2, slope = slope))
   }
 }
 
-# Remove rows where R2 is NA
+# Remove rows where NA
 r2_results <- r2_results %>% filter(!is.na(R2))
+r2_results <- r2_results %>% filter(!is.na(slope))
 
 # Convert 'clonalrate' to a factor
 r2_results$clonalrate <- as.factor(r2_results$clonalrate)
 
 # Display the results
-print(r2_results)
+head(r2_results)
 
 
 # Plot 
 R_2_plot<- ggplot(r2_results, aes(x = clonalrate, y = R2)) +
-  geom_violin(fill = "#A4D3EE", color = "#104E8B", alpha = 0.7) +
-  geom_boxplot(width = 0.1, color = "black", outlier.color = "red", outlier.shape = 16) +
-  labs(
-    title = "Distribution of R^2 Values by Clonal Rate",
-    x = "Clonal Rate",
-    y = "R^2"
+  geom_boxplot(alpha = 0.8,
+    outlier.color = "grey50",
+    outlier.shape = 16,
+    fill = "#4B9CD3", 
+    color = "black"
+  ) +  labs(
+    x = "Clonal rate",
+    y = expression(R^2),
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 13) +
   theme(
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
     axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "none"
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
   )
 
+
+R_2_plot
+
+# Plot slope
+slope_plot <- ggplot(r2_results, aes(x = clonalrate, y = slope)) +
+  geom_boxplot(alpha = 0.8,
+    outlier.color = "grey50",
+    outlier.shape = 16,
+    fill = "#4B9CD3", 
+    color = "black"
+  ) + labs(
+    x = "Clonal rate",
+    y = "Slope",
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),  
+    plot.background = element_rect(fill = "white", color = NA), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+slope_plot
+
+# combine the plots
+combined_r2_plot <- plot_grid(R_2_plot, slope_plot, labels = c("A", "B"), ncol = 1)
 # Save plot
 ggsave(
-  filename = "R_2_plot.png",  
-  plot = R_2_plot,           
-  width = 30,                  
+  filename = "combined_r2_plot.png",  
+  plot = combined_r2_plot,           
+  width = 25,                  
   height = 20,    
   units = "cm",                   
-  dpi = 300                       
+  dpi = 1200                       
 )
 
-# Without Age zero 
-
-# Initialize a data frame to store the results
-r2_results_Zero <- data.frame(clonalrate = character(), Replicate = integer(), R2 = numeric(), stringsAsFactors = FALSE)
-
-# Get unique clonal rates
-unique_clonal_rates <- unique(parsed_data$clonalrate)
-
-# Loop over each clonal rate
-for (clonal_rate in unique_clonal_rates) {
-  # Filter data for the current clonal rate
-  parsed_data_clonal <- parsed_data %>%
-    filter(clonalrate == clonal_rate) %>%
-    mutate(log_Count = log(Count))  # Log-transform Count
-
-  # Loop over unique replicates for the current clonal rate
-  for (replicate in unique(parsed_data_clonal$Replicate)) {
-    # Filter data for the current replicate and exclude Age == 0
-    replicate_data <- parsed_data_clonal %>%
-      filter(Replicate == replicate, Age > 0)  # Exclude Age == 0
-
-    # Calculate R^2 if there are enough data points
-    if (nrow(replicate_data) > 1) {  # Ensure there are at least 2 points
-      lm_fit <- lm(log_Count ~ Age, data = replicate_data)  # Fit linear model
-      r2 <- summary(lm_fit)$r.squared  # Extract R^2 from the model summary
-    } else {
-      r2 <- NA  # If not enough data, assign NA
-    }
-
-    # Store the results
-    r2_results_Zero <- rbind(r2_results_Zero, data.frame(clonalrate = clonal_rate, Replicate = replicate, R2 = r2))
-  }
-}
-
-# Remove rows where R2 is NA
-r2_results_Zero <- r2_results_Zero %>% filter(!is.na(R2))
-
-# Convert 'clonalrate' to a factor
-r2_results_Zero$clonalrate <- as.factor(r2_results_Zero$clonalrate)
-
-# Display the results
-print(r2_results)
+combined_r2_plot
+```
 
 
-# Plot 
-ggplot(r2_results_Zero, aes(x = clonalrate, y = R2)) +
-  geom_violin(fill = "#A4D3EE", color = "#104E8B", alpha = 0.7) +
-  geom_boxplot(width = 0.1, color = "black", outlier.color = "red", outlier.shape = 16) +
-  labs(
-    title = "Distribution of R^2 Values by Clonal Rate (Excluding Age 0)",
-    x = "Clonal Rate",
-    y = "R^2"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "none"
+# Summary 
+
+
+```{r, echo=FALSE}
+
+summary_indices <- parsed_data %>%
+  group_by(clonalrate) %>%
+  summarise(
+    median_R_Tot = median(R_Tot, na.rm = TRUE),
+    median_Var_FIS = median(Var_FIS_Tot, na.rm = TRUE),
+    median_FIS = median(Mean_FIS_Tot, na.rm = TRUE),
+    median_He = median(Mean_He_Tot, na.rm = TRUE),
+    median_Ho = median(Mean_Ho_Tot, na.rm = TRUE),
+    median_Pareto_beta = median(Pareto_beta_Tot, na.rm = TRUE),
+    .groups = 'drop'
   )
+
+
+
+r2_summary <- r2_results %>%
+  group_by(clonalrate) %>%
+  summarise(
+    mean_R2 = mean(R2, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+
+slope_summary <- r2_results %>%
+  group_by(clonalrate) %>%
+  summarise(
+    mean_slope = mean(slope, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+summary_table <- summary_indices %>%
+  left_join(r2_summary, by = "clonalrate") %>%
+  left_join(slope_summary, by = "clonalrate")
+
+head (summary_table)
+
+
+
 
 ```
 
+## spearman correlation
+
 ```{r, echo=FALSE}
+
+# Prepare numeric-only data
+cor_data <- summary_table %>%
+  dplyr::select(-clonalrate)
+
+# Compute Spearman correlation
+cor_matrix <- cor(cor_data, method = "spearman", use = "pairwise.complete.obs")
+
+# Rename the columns and rows
+colnames(cor_matrix) <- c("R", "Var_FIS", "Mean_FIS", "He", "Ho", "Pareto_beta", "R^2", "Slope")
+rownames(cor_matrix) <- c("R", "Var_FIS", "Mean_FIS", "He", "Ho", "Pareto_beta", "R^2", "Slope")
+
+file_path= "Spearman_correlation_plot.png matrix.png"
+png(height=20, width=20, file=file_path, units = "cm", res=1200,bg="white")
+
+Spearman_correlation_plot <-  corrplot(cor_matrix, 
+         method = "color",
+         type = "upper",
+         tl.cex= 1,
+         addCoef.col = "black",
+         tl.col = "black",
+         mar = c(0,0,1,0),
+         bg = "white",
+         font=3)
+
+dev.off()
+
 
 
 ```
@@ -962,6 +1020,7 @@ ggplot(summary_table, aes(x = Mean_Age_Zero, y = Mean_R)) +
 
 
 ```
+
 
 ## Extract specific clonerate
 
