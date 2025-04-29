@@ -32,62 +32,6 @@ for (package in required_packages) {
 
 ## 2. Retrieve data
 
-```{r, echo=FALSE}
-# Get the path of the current R script
-path <- dirname(rstudioapi::getSourceEditorContext()$path)
-
-# Set the working directory to the path of the current R script
-setwd(path)
-
-# Check the current working directory
-#getwd()
-
-
-# Import the data 
-file_path_S1 <- "2024-08-30-18h_04minsimulationS1.txt"
-data_S1 <- fread(file_path_S1, header = TRUE, sep = "\t", fill = TRUE)
-
-# Import data for another simulation which clonerate =  0.98 and 0.9999
-file_path_0.98 <- "2024-10-28-14h_23minsimulationS1.txt"
-data_0.98 <- fread(file_path_0.98, header = TRUE, sep = "\t", fill = TRUE)
-
-# Import data for another simulation which clonerate =  0.95, 0.96, and 0.97
-file_path_0.95 <- "2024-11-04-17h_21minsimulationS1.txt"
-data_0.95 <- fread(file_path_0.95, header = TRUE, sep = "\t", fill = TRUE)
-
-# Without and low mutation u=0
-
-
-file_path_no_mutation<- "2024-11-13-10h_14minsimulationS1.txt"
-data_no_mutation <- fread(file_path_no_mutation, header = TRUE, sep = "\t", fill = TRUE)
-
-#u=10^-6 
-
-file_path_mutation <- "2024-11-13-09h_40minsimulationS1.txt"
-data_mutation <- fread(file_path_mutation, header = TRUE, sep = "\t", fill = TRUE)
-
-
-
-
-#data <- data_mutation 
-
-# Combine two df
-data <- rbind(data_S1,data_0.98,data_0.95)
-
-
-
-## Data polish
-# Remove last three columns 
-data <- data[,-16:-18]
-
-# Change header names
-colnames(data) <- c("Replicate", "Mutation_Rate", "clonalrate", "Number_alleles","Number_fixed_loci", "Mean_He","Mean_Ho","Mean_FIS","Var_FIS","Mean_r_bar_D", "SD_r_bar_D", "Number_Genotypes", "R", "Pareto_beta","List_distribution_gen_clonal_genotypes")
-
-
-head(data)
-```
-
-
 
 
 ```{r, echo=FALSE}
@@ -111,7 +55,7 @@ colnames(data_dif_mutation) <- c("Replicate","Generation","Mutation_Rate", "clon
 #data_dif_mutation <- data_dif_mutation %>% drop_na() 
 
 # Filter the data, alleles 4 and mutation rate 1e-06 and generation every 10
-data <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter(Mutation_Rate == 0.000001) %>% filter (Generation %% 10 == 0)
+data <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter(Mutation_Rate == 0.001) %>% filter (Generation %% 10 == 0)
 head (data)
 
 #data_dif_mutation_m4_N4$Mean_FIS_Tot <- as.numeric(data_dif_mutation_m4_N4$Mean_FIS_Tot)
@@ -122,7 +66,7 @@ head (data)
 ```{r, echo=FALSE}
 
 # Prepare data
-data_prepared <- data_dif_mutation_m4_N4 %>%
+data_prepared <- data %>%
   # Convert to numeric
   mutate(Mean_FIS_Tot = as.numeric(Mean_He_Tot)) %>%
   # Remove exact duplicates
@@ -607,13 +551,26 @@ animate(p, nframes = 100, fps = 10, width = 1500, height = 800, res = 150, rende
 
 ```
 
+
 ## The relation between population genetic indices, generations and clonerate
 
 ```{r, echo=FALSE}
 # group by generation and calculate the median per each indices
+data_grouped_g_c <- data %>%
+  group_by(Generation, clonalrate) %>%
+  summarise(
+    Mean_FIS_Tot = median(Mean_FIS_Tot, na.rm = TRUE),
+    Var_FIS_Tot = median(Var_FIS_Tot, na.rm = TRUE),
+    Mean_He_Tot = median(Mean_He_Tot, na.rm = TRUE),
+    Mean_Ho_Tot = median(Mean_Ho_Tot, na.rm = TRUE),
+    R_Tot = median(R_Tot, na.rm = TRUE),
+    Pareto_beta_Tot = median(Pareto_beta_Tot, na.rm = TRUE)
+  ) %>%
+  ungroup() # 
+
 
 # Plot mean FIS by clonal rate and generation
-plot_Mean_FIS_2 <-  ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_FIS_Tot)) +
+plot_Mean_FIS_2 <-  ggplot(data_grouped_g_c, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_FIS_Tot)) +
   geom_tile() +
   scale_fill_viridis_c(option = "viridis", name = expression("Mean("*italic(F)[IS]*")")) +
   labs(
@@ -626,14 +583,14 @@ plot_Mean_FIS_2 <-  ggplot(data, aes(x = as.factor(Generation), y = as.factor(cl
     plot.background = element_rect(fill = "white", color = NA), 
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),  
-    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.text.x = element_text(angle = 90, hjust = 1,size = 10),
     axis.title.x = element_text(margin = margin(t = 10)),
     axis.title.y = element_text(margin = margin(r = 10))
   )
 
 
 # Plot variance of FIS by clonal rate and generation
-plot_Var_FIS_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Var_FIS_Tot)) +
+plot_Var_FIS_2 <- ggplot(data_grouped_g_c, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Var_FIS_Tot)) +
   geom_tile() +
   scale_fill_viridis_c(option = "viridis", name = expression("Var("*italic(F)[IS]*")")) +
   labs(
@@ -646,14 +603,14 @@ plot_Var_FIS_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(clon
     plot.background = element_rect(fill = "white", color = NA), 
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),  
-    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.text.x = element_text(angle = 90, hjust = 1,size = 10),
     axis.title.x = element_text(margin = margin(t = 10)),
     axis.title.y = element_text(margin = margin(r = 10))
   )
 
 
  # Plot mean He by clonal rate and generation
-plot_Mean_He_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_He_Tot)) +
+plot_Mean_He_2 <- ggplot(data_grouped_g_c, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_He_Tot)) +
   geom_tile() +
   scale_fill_viridis_c(option = "viridis", name = expression(italic(H)[e])) +
   labs(
@@ -665,14 +622,14 @@ plot_Mean_He_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(clon
     plot.background = element_rect(fill = "white", color = NA), 
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),  
-    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.text.x = element_text(angle = 90, hjust = 1,size = 10),
     axis.title.x = element_blank(),
     axis.title.y = element_text(margin = margin(r = 10))
   )
 
 
 # Plot mean Ho by clonal rate and generation
-plot_Mean_Ho_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_Ho_Tot)) +
+plot_Mean_Ho_2 <- ggplot(data_grouped_g_c, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_Ho_Tot)) +
   geom_tile() +
   scale_fill_viridis_c(option = "viridis", name = expression(italic(H)[o])) +
   labs(
@@ -684,13 +641,13 @@ plot_Mean_Ho_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(clon
     plot.background = element_rect(fill = "white", color = NA), 
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),  
-    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.text.x = element_text(angle = 90, hjust = 1,size = 10),
     axis.title.x = element_blank(),
     axis.title.y = element_text(margin = margin(r = 10))
   )
 
 # Plot R by clonal rate and generation
-plot_R_2 <-  ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = R_Tot)) +
+plot_R_2 <-  ggplot(data_grouped_g_c, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = R_Tot)) +
   geom_tile() +
   scale_fill_viridis_c(option = "viridis", name = "R") +
   labs(
@@ -702,14 +659,14 @@ plot_R_2 <-  ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrat
     plot.background = element_rect(fill = "white", color = NA), 
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),  
-    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.text.x = element_text(angle = 90, hjust = 1,size = 10),
     axis.title.x = element_blank(),
     axis.title.y = element_text(margin = margin(r = 10))
   )
 
 
 # Plot Pareto beta by clonal rate and generation
-plot_Pareto_beta_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Pareto_beta_Tot)) +
+plot_Pareto_beta_2 <- ggplot(data_grouped_g_c, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Pareto_beta_Tot)) +
   geom_tile() +
   scale_fill_viridis_c(option = "viridis", name = expression(italic(β) * " Pareto")) +
   labs(
@@ -721,7 +678,7 @@ plot_Pareto_beta_2 <- ggplot(data, aes(x = as.factor(Generation), y = as.factor(
     plot.background = element_rect(fill = "white", color = NA), 
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),  
-    axis.text.x = element_text(angle = 90, hjust = 1),
+    axis.text.x = element_text(angle = 90, hjust = 1,size = 10),
     axis.title.x = element_blank(),
     axis.title.y = element_text(margin = margin(r = 10))
   )
@@ -736,13 +693,14 @@ combined_plot_2 <- plot_grid(plot_Mean_He_2, plot_Mean_Ho_2, plot_R_2 , plot_Par
 ggsave(
   filename = "combined_pop_indices_plot_2.png",  
   plot = combined_plot_2,           
-  width = 25,                  
-  height = 20,    
+  width = 30,                  
+  height = 25,    
   units = "cm",                   
   dpi = 1200                       
 )
 
 combined_plot_2
+
 
 ```
 
@@ -751,16 +709,20 @@ combined_plot_2
 ## R^2 per each replicate
 
 ```{r, echo=FALSE}
+# data for generation 100
+parsed_data_g <- parsed_data %>%
+  filter(Generation == 6000) 
+
 # Initialize a data frame to store the results
-r2_results <- data.frame(clonalrate = character(), Replicate = integer(), R2 = numeric(), stringsAsFactors = FALSE)
+r2_results <- data.frame(clonalrate = character(), Replicate = integer(), R2 = numeric(),slope=numeric(), stringsAsFactors = FALSE)
 
 # Get unique clonal rates
-unique_clonal_rates <- unique(parsed_data$clonalrate)
+unique_clonal_rates <- unique(parsed_data_g$clonalrate)
 
-# Loop over each clonal rate
+# Loop over each clonal rate to calculate R^2 and slopes
 for (clonal_rate in unique_clonal_rates) {
   # Filter data for the current clonal rate
-  parsed_data_clonal <- parsed_data %>%
+  parsed_data_clonal <- parsed_data_g %>%
     filter(clonalrate == clonal_rate) %>%
     mutate(log_Count = log(Count))  # Log-transform Count
 
@@ -778,6 +740,7 @@ for (clonal_rate in unique_clonal_rates) {
       slope <- coef(lm_fit)["Age"]  # Extract slope (coefficient for Age)
     } else {
       r2 <- NA  # If not enough data, assign NA
+      slope <- NA  # If not enough data, assign NA
     }
 
     # Store the results
@@ -865,8 +828,14 @@ combined_r2_plot
 
 
 ```{r, echo=FALSE}
+# Create a summary table for the population genetic indices per generation 100
 
-summary_indices <- parsed_data %>%
+# Filter and prepare data for generation 6000
+gen6000_data <- parsed_data %>% filter(Generation == 6000)
+
+# Summarise genetic indices
+summary_indices <- data_grouped_g_c %>%
+  filter(Generation == 6000) %>%
   group_by(clonalrate) %>%
   summarise(
     median_R_Tot = median(R_Tot, na.rm = TRUE),
@@ -878,30 +847,46 @@ summary_indices <- parsed_data %>%
     .groups = 'drop'
   )
 
-
-
+# Summarise R2 and slope
 r2_summary <- r2_results %>%
   group_by(clonalrate) %>%
   summarise(
-    mean_R2 = mean(R2, na.rm = TRUE),
-    .groups = 'drop'
-  )
-
-
-slope_summary <- r2_results %>%
-  group_by(clonalrate) %>%
-  summarise(
+    mean_R2 = median(R2, na.rm = TRUE),
     mean_slope = mean(slope, na.rm = TRUE),
     .groups = 'drop'
   )
 
-summary_table <- summary_indices %>%
+# Summarise age statistics from parsed_data
+age_summary <- gen6000_data %>%
+  group_by(clonalrate) %>%
+  summarise(
+    max_age = max(Age, na.rm = TRUE),
+    median_age = median(rep(Age, Count), na.rm = TRUE),
+    var_age = var(Age, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+
+# Ensure clonalrate is numeric in all summary tables
+summary_indices$clonalrate <- as.numeric(as.character(summary_indices$clonalrate))
+r2_summary$clonalrate <- as.numeric(as.character(r2_summary$clonalrate))
+age_summary$clonalrate <- as.numeric(as.character(age_summary$clonalrate))
+
+
+# Find common clonalrate values across all summary tables
+common_clonalrates <- unique(r2_summary$clonalrate)
+# Filter each table to keep only common clonalrates
+summary_indices_filtered <- summary_indices %>%
+  filter(clonalrate %in% common_clonalrates)
+age_summary_filtered <- age_summary %>%
+  filter(clonalrate %in% common_clonalrates)
+
+
+
+# Now join only the filtered tables
+summary_table <- summary_indices_filtered %>%
   left_join(r2_summary, by = "clonalrate") %>%
-  left_join(slope_summary, by = "clonalrate")
-
-head (summary_table)
-
-
+  left_join(age_summary_filtered, by = "clonalrate")
 
 
 ```
@@ -918,36 +903,70 @@ cor_data <- summary_table %>%
 cor_matrix <- cor(cor_data, method = "spearman", use = "pairwise.complete.obs")
 
 # Rename the columns and rows
-colnames(cor_matrix) <- c("R", "Var_FIS", "Mean_FIS", "He", "Ho", "Pareto_beta", "R^2", "Slope")
-rownames(cor_matrix) <- c("R", "Var_FIS", "Mean_FIS", "He", "Ho", "Pareto_beta", "R^2", "Slope")
+colnames(cor_matrix) <- c("R", "Var_FIS", "Mean_FIS", "He", "Ho", "Pareto_beta", "R^2", "Slope",
+                           "Max_age", "Median_age","Var_age")
+rownames(cor_matrix) <- c("R", "Var_FIS", "Mean_FIS", "He", "Ho", "Pareto_beta", "R^2", "Slope",
+                           "Max_age",  "Median_age","Var_age")
 
-file_path= "Spearman_correlation_plot.png matrix.png"
+file_path= "Spearman_correlation_plot_6000_matrix.png"
 png(height=20, width=20, file=file_path, units = "cm", res=1200,bg="white")
 
-Spearman_correlation_plot <-  corrplot(cor_matrix, 
+Spearman_correlation_plot_6000 <-  corrplot(cor_matrix, 
          method = "color",
          type = "upper",
          tl.cex= 1,
          addCoef.col = "black",
          tl.col = "black",
          mar = c(0,0,1,0),
-         bg = "white",
-         font=3)
+         bg = "white")
 
 dev.off()
 
 
 
+
 ```
 
+```{r, echo=FALSE}
+
+#plotting the median R_tot and slope of age distribution (each dot represent clonerate)
+plot_R_slope <- ggplot(summary_table, aes(x = mean_slope, y = median_R_Tot)) +
+  geom_point(aes(color =as.factor(clonalrate)), size = 3) +  # Points with transparency
+  geom_smooth(method = "lm", color = "red", se = TRUE) +  # Optional trend line with confidence interval
+  labs(
+    x = "Slope of age distribution",
+    y = "Median R"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",  
+    legend.direction = "horizontal"  
+  ) +
+  guides(color = guide_legend(nrow = 1)) +  # Arrange legend in one row
+  scale_color_viridis_d(option = "C", end = 0.9)  # Use perceptually-uniform colors
+
+plot_R_slope
 
 
+# plot R_tot with max age 
+plot_R_max_age <- ggplot(summary_table, aes(x = max_age, y = median_R_Tot)) +
+  geom_point(aes(color =as.factor(clonalrate)), size = 3) +  # Points with transparency
+  geom_smooth(method = "lm", color = "red", se = TRUE) +  # Optional trend line with confidence interval
+  labs(
+    x = "Max age",
+    y = "Median R"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",  
+    legend.direction = "horizontal"  
+  ) +
+  guides(color = guide_legend(nrow = 1)) +  # Arrange legend in one row
+  scale_color_viridis_d(option = "C", end = 0.9)  # Use perceptually-uniform colors
+plot_R_max_age
 
 
-
-
-
-
+```
 
 
 
