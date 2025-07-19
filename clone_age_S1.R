@@ -55,7 +55,7 @@ colnames(data_dif_mutation) <- c("Replicate","Generation","Mutation_Rate", "clon
 #data_dif_mutation <- data_dif_mutation %>% drop_na() 
 
 # Filter the data, alleles 4 and mutation rate 1e-06 and generation every 10
-data <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter(Mutation_Rate == 0.000001) %>% filter (Generation %% 10 == 0) 
+data <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter(Mutation_Rate == 0.001) %>% filter (Generation %% 10 == 0) 
 
 #data_dif_mutation_m4_N4$Mean_FIS_Tot <- as.numeric(data_dif_mutation_m4_N4$Mean_FIS_Tot)
 ```
@@ -69,9 +69,11 @@ data <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter(Mutation_
 
 ```{r, echo=FALSE}
 
+data_filt_6000 <- data %>% filter (Generation == 6000)
+
 
 # Create the boxplot for R
-plot_R <- ggplot(data, aes(x = as.factor(clonalrate), y = R_Tot)) +
+plot_R <- ggplot(data_filt_6000, aes(x = as.factor(clonalrate), y = R_Tot)) +
   geom_boxplot(alpha = 0.8,
     outlier.color = "grey50",
     outlier.shape = 16,
@@ -94,9 +96,8 @@ plot_R <- ggplot(data, aes(x = as.factor(clonalrate), y = R_Tot)) +
     axis.title.y = element_text(margin = margin(r = 10))
   )
 
-
 # Create the boxplot for Pareto_beta
-plot_Pareto_beta <- ggplot(data, aes(x = as.factor(clonalrate), y = Pareto_beta_Tot)) +
+plot_Pareto_beta <- ggplot(data_filt_6000, aes(x = as.factor(clonalrate), y = Pareto_beta_Tot)) +
   geom_boxplot(alpha = 0.8,
     outlier.color = "grey50",
     outlier.shape = 16,
@@ -121,7 +122,7 @@ plot_Pareto_beta <- ggplot(data, aes(x = as.factor(clonalrate), y = Pareto_beta_
 
 
 #Creat the boxplot for Var_FIS
-plot_Var_FIS <- ggplot(data, aes(x = as.factor(clonalrate), y = Var_FIS_Tot)) +
+plot_Var_FIS <- ggplot(data_filt_6000, aes(x = as.factor(clonalrate), y = Var_FIS_Tot)) +
   geom_boxplot(alpha = 0.8,
     outlier.color = "grey50",
     outlier.shape = 16,
@@ -146,7 +147,7 @@ plot_Var_FIS <- ggplot(data, aes(x = as.factor(clonalrate), y = Var_FIS_Tot)) +
 
 
 # Creat the boxplot for Mean_FIS
-plot_Mean_FIS <- ggplot(data, aes(x = as.factor(clonalrate), y = Mean_FIS_Tot)) +
+plot_Mean_FIS <- ggplot(data_filt_6000, aes(x = as.factor(clonalrate), y = Mean_FIS_Tot)) +
   geom_boxplot(alpha = 0.8,
     outlier.color = "grey50",
     outlier.shape = 16,
@@ -170,7 +171,7 @@ plot_Mean_FIS <- ggplot(data, aes(x = as.factor(clonalrate), y = Mean_FIS_Tot)) 
   )
 
 # Creat the boxplot for Mean_He
-plot_Mean_He <- ggplot(data, aes(x = as.factor(clonalrate), y = Mean_He_Tot)) +
+plot_Mean_He <- ggplot(data_filt_6000, aes(x = as.factor(clonalrate), y = Mean_He_Tot)) +
   geom_boxplot(alpha = 0.8,
     outlier.color = "grey50",
     outlier.shape = 16,
@@ -194,7 +195,7 @@ plot_Mean_He <- ggplot(data, aes(x = as.factor(clonalrate), y = Mean_He_Tot)) +
   )
 
 #Creat the boxplot for Mean_Ho
-plot_Mean_Ho <- ggplot(data, aes(x = as.factor(clonalrate), y = Mean_Ho_Tot)) +
+plot_Mean_Ho <- ggplot(data_filt_6000, aes(x = as.factor(clonalrate), y = Mean_Ho_Tot)) +
   geom_boxplot(alpha = 0.8,
     outlier.color = "grey50",
     outlier.shape = 16,
@@ -228,7 +229,7 @@ combined_plot <- plot_grid( plot_Mean_He, plot_Mean_Ho, plot_R , plot_Pareto_bet
 ggsave(
   filename = "combined_pop_indices_plot.png",  
   plot = combined_plot,           
-  width = 16,  # Double-column width (cm)
+  width = 18,  # Double-column width (cm)
   height = 15,   # Adjust height to maintain aspect ratio
   units = "cm",                   
   dpi = 1200                       
@@ -514,7 +515,7 @@ animate(p, nframes = 100, fps = 10, width = 1500, height = 800, res = 150, rende
 
 ```{r, echo=FALSE}
 # filter the data to minimize the clonal rates for clear visualization
-data_min_c_10_6 <- data %>% filter(clonalrate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999"))
+data_min_c_10_6 <- data %>% filter(clonalrate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999", "0.9999"))
 
 # group by generation and calculate the median per each indices
 data_grouped_g_c_10_6 <- data_min_c_10_6 %>%
@@ -661,7 +662,7 @@ data_mutation_10_4 <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% fi
 
 ```{r, echo=FALSE}
 # filter the data to minimize the clonal rates for clear visualization
-data_min_c_10_4 <- data_mutation_10_4 %>% filter(clonalrate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999"))
+data_min_c_10_4 <- data_mutation_10_4 %>% filter(clonalrate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999", "0.9999"))
 
 # group by generation and calculate the median per each indices
 data_grouped_g_c_10_4 <- data_min_c_10_4 %>%
@@ -878,6 +879,19 @@ r2_results$clonalrate <- as.factor(r2_results$clonalrate)
 head(r2_results)
 
 
+# max,mod, var age
+# Calculate the maximum, median, and variance of clone ages for each clonal rate and replicate
+
+age_stats <- parsed_data_g %>%
+  group_by(clonalrate, Replicate) %>%
+  summarise(
+    Max_Age = max(Age, na.rm = TRUE),
+    Median_Age = median(Age, na.rm = TRUE),
+    Var_Age = var(Age, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
 # Plot 
 R_2_plot<- ggplot(r2_results, aes(x = clonalrate, y = R2)) +
   geom_boxplot(alpha = 0.8,
@@ -950,14 +964,15 @@ data_6000 <- data %>% filter(Generation == 6000)
 # Convert factors to character before merging
 r2_results$clonalrate <- as.character(r2_results$clonalrate)
 data_6000$clonalrate <- as.character(data_6000$clonalrate)
+age_stats$clonalrate <- as.character(age_stats$clonalrate)
 
 #merge by replicate 
 
-merged_slope_parsed_df <- merge(r2_results, data_6000 %>% select(clonalrate, Replicate,Mean_FIS_Tot, Var_FIS_Tot, Mean_Ho_Tot, Mean_He_Tot, R_Tot, Pareto_beta_Tot), by.x = c("clonalrate", "Replicate"), by.y = c("clonalrate", "Replicate"))
+merged_slope_parsed_df <- merge(r2_results, data_6000 , age_stats %>% select(clonalrate, Replicate, Mean_FIS_Tot, Var_FIS_Tot, Mean_Ho_Tot, Mean_He_Tot, R_Tot, Pareto_beta_Tot), by.x = c("clonalrate", "Replicate"), by.y = c("clonalrate", "Replicate"))
 
 # Minimize the  clonal rates for better visualization
 merged_slope_parsed_data <- merged_slope_parsed_df %>%
-  filter(clonalrate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999"))
+  filter(clonalrate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999","0.9999"))
 
 ```
 
@@ -1569,9 +1584,12 @@ combined_plot_4
 
 ## scatter plot for R^2 vs Var_FIS and R^2 vs Mean_FIS for c= 0.999 , 0.9999
 ```{r, echo=FALSE}
-# 
+# Filter the merged_slope_parsed_data for clonal rates 0.999 and 0.9999
 
-R2_var_fis_0.999 <- ggplot((merged_slope_parsed_df %>% filter (clonalrate == 0.999)), aes(x = R2 , y = Var_FIS_Tot, color = as.factor(clonalrate))) +
+merged_slope_parsed_df_extreme <- merged_slope_parsed_data %>%
+  filter(clonalrate %in% c("0.99","0.999", "0.9999"))
+
+R2_var_fis_extreme  <- ggplot(merged_slope_parsed_df_extreme, aes(x = R2 , y = Var_FIS_Tot, color = as.factor(clonalrate))) +
   geom_point(size = 3, alpha = 0.7) +  # Scatter plot
   geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +  # Linear regression line for each clonal rate
   labs(
@@ -1585,7 +1603,7 @@ R2_var_fis_0.999 <- ggplot((merged_slope_parsed_df %>% filter (clonalrate == 0.9
     legend.title = element_text(size = 10)
   )
 # Plot R^2 vs Mean_FIS for each clonal rate
-R2_mean_fis_0.999 <- ggplot((merged_slope_parsed_df %>% filter (clonalrate == 0.999)), aes(x = R2 , y = Mean_FIS_Tot , color = as.factor(clonalrate))) +
+R2_mean_fis_extreme  <- ggplot(merged_slope_parsed_df_extreme, aes(x = R2 , y = Mean_FIS_Tot , color = as.factor(clonalrate))) +
   geom_point(size = 3, alpha = 0.7) +  # Scatter plot
   geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +  # Linear regression line for each clonal rate
   labs(
@@ -1600,34 +1618,7 @@ R2_mean_fis_0.999 <- ggplot((merged_slope_parsed_df %>% filter (clonalrate == 0.
   )
 
 
-# 0.9999
-R2_var_fis_0.9999 <- ggplot((merged_slope_parsed_df %>% filter (clonalrate == 0.9999)), aes(x = R2 , y = Var_FIS_Tot, color = as.factor(clonalrate))) +
-  geom_point(size = 3, alpha = 0.7) +  # Scatter plot
-  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +  # Linear regression line for each clonal rate
-  labs(
-    x = "R^2",
-    y = "Var(FIS)",
-    color = "Clonal Rate"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "right",  # Legend on the right
-    legend.title = element_text(size = 10)
-  )
-# Plot R^2 vs Mean_FIS for each clonal rate
-R2_mean_fis_0.9999 <- ggplot((merged_slope_parsed_df %>% filter (clonalrate == 0.9999)), aes(x = R2 , y = Mean_FIS_Tot , color = as.factor(clonalrate))) +
-  geom_point(size = 3, alpha = 0.7) +  # Scatter plot
-  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +  # Linear regression line for each clonal rate
-  labs(
-    x = "R^2",
-    y = "Mean_FIS",
-    color = "Clonal Rate"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "right",  # Legend on the right
-    legend.title = element_text(size = 10)
-  )
+
 
 # combine the plots into one figure two cols
 combined_plot_8 <- plot_grid (
