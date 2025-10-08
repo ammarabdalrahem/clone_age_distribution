@@ -45,7 +45,7 @@ setwd(path)
 #getwd()
 
 #new data (different mutation rates)
-file_path_dif_mutation <- "2024-12-12-17h 55minsimulationS3_without_burnin.txt"
+file_path_dif_mutation <- "simulation_data.txt"
 data_dif_mutation <- fread(file_path_dif_mutation, header = TRUE, sep = "\t", fill = TRUE)
 
 colnames(data_dif_mutation) <- c("Replicate","Generation","Mutation_Rate", "clonalrate", "Nb_alleles_tot", "Number_alleles_Tot" , "Number_fixed_loci_Tot", "Mean_He_Tot" ,  "Mean_Ho_Tot" , "Mean_FIS_Tot", "Var_FIS_Tot", "Number_Genotypes_Tot","R_Tot", "Pareto_beta_Tot","List_distribution_gen_clonal_genotypes")
@@ -105,7 +105,7 @@ plot_Pareto_beta <- ggplot(data_6000, aes(x = as.factor(clonalrate), y = Pareto_
   ) +
   labs(
     x = "Clonality rate",
-    y = expression(italic(β) * " Pareto")
+    y = expression(italic("Pareto " * beta))
   ) +
   theme_minimal(base_size = 14) +
   theme(
@@ -750,7 +750,7 @@ plot_R_10_3 <-  ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generation), y =
 # Plot Pareto beta by Clonality rate and generation
 plot_Pareto_beta_10_3 <- ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Pareto_beta_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression(italic(β) * " Pareto")) +
+  scale_fill_viridis_c(option = "viridis", name = expression(italic("Pareto " * beta))) +
   labs(
     y = "Clonality rate",
   ) +
@@ -903,7 +903,7 @@ plot_R_10_4 <-  ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation), y =
 # Plot Pareto beta by Clonality rate and generation
 plot_Pareto_beta_10_4 <- ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Pareto_beta_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression(italic(β) * " Pareto")) +
+  scale_fill_viridis_c(option = "viridis", name = expression(italic("Pareto " * beta))) +
   labs(
     y = "Clonality rate",
   ) +
