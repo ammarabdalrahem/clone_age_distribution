@@ -45,7 +45,7 @@ setwd(path)
 #getwd()
 
 #new data (different mutation rates)
-file_path_dif_mutation <- "simulation_data.txt"
+file_path_dif_mutation <- "simulation_data_new.txt"
 data_dif_mutation <- fread(file_path_dif_mutation, header = TRUE, sep = "\t", fill = TRUE)
 
 colnames(data_dif_mutation) <- c("Replicate","Generation","Mutation_Rate", "clonalrate", "Nb_alleles_tot", "Number_alleles_Tot" , "Number_fixed_loci_Tot", "Mean_He_Tot" ,  "Mean_Ho_Tot" , "Mean_FIS_Tot", "Var_FIS_Tot", "Number_Genotypes_Tot","R_Tot", "Pareto_beta_Tot","List_distribution_gen_clonal_genotypes")
