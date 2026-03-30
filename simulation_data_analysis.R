@@ -18,7 +18,7 @@ Remember to re-run this code every time you re-open this R Notebook.
 ```{r}
 #Code to install packages if necessary, and read them with library function
 
-required_packages <- c("knitr","rmarkdown","ggridges","data.table","ggplot2","gganimate","dplyr","tidyr","cowplot", "reshape2","ggcorrplot","corrplot","viridis","ggforce","ggbeeswarm")
+required_packages <- c("knitr","rmarkdown","ggridges","data.table","ggplot2","gganimate","dplyr","tidyr","cowplot", "reshape2","ggcorrplot","corrplot","viridis","ggforce","ggbeeswarm","corrplot")
 for (package in required_packages) {
   if (package %in% row.names(installed.packages())) {
     library(package, character.only = TRUE)
@@ -45,7 +45,7 @@ setwd(path)
 #getwd()
 
 #new data (different mutation rates)
-file_path_dif_mutation <- "simulation_data_new.txt"
+file_path_dif_mutation <- "simulation_data.txt"
 data_dif_mutation <- fread(file_path_dif_mutation, header = TRUE, sep = "\t", fill = TRUE)
 
 colnames(data_dif_mutation) <- c("Replicate","Generation","Mutation_Rate", "clonalrate", "Nb_alleles_tot", "Number_alleles_Tot" , "Number_fixed_loci_Tot", "Mean_He_Tot" ,  "Mean_Ho_Tot" , "Mean_FIS_Tot", "Var_FIS_Tot", "Number_Genotypes_Tot","R_Tot", "Pareto_beta_Tot","List_distribution_gen_clonal_genotypes")
@@ -54,10 +54,17 @@ colnames(data_dif_mutation) <- c("Replicate","Generation","Mutation_Rate", "clon
 #Remove rows contain NA 
 #data_dif_mutation <- data_dif_mutation %>% drop_na() 
 
+
 # Filter the data, alleles 4 and mutation rate 1e-03 and generation every 10
-data <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter(Mutation_Rate == 0.001) %>% filter (Generation %% 10 == 0) 
+data <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter(Mutation_Rate == 0.001) %>% filter (Generation %% 10 == 9)
 
 head (data)
+
+# creat a new data for two mutation rates 10^-3 and 10^-6
+#new_data <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter (Generation %% 10 == 0) %>% filter(Mutation_Rate %in% c(0.001, 0.000001))
+
+# save new data as txt file
+#write.table(new_data, file = "simulation_data_new.txt", sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
 
 ```
 
@@ -473,7 +480,7 @@ Joyplot_plot
 # Filter the data for generation 9000 and specific Clonality rates
 data_9000 <- data %>% filter(Generation == 9000) %>%
   filter(clonalrate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", 
-                           "0.95", "0.98", "0.99", "0.999", "0.9999"))
+                           "0.95", "0.98", "0.99", "0.999", "0.9999", "1"))
 
 parsed_data <- data_9000 %>%
   rowwise() %>%
@@ -635,7 +642,7 @@ animate(Animated_scatter_plot, nframes = 100, fps = 10, width = 1500, height = 8
 
 ```{r, echo=FALSE}
 # filter the data to minimize the Clonality rates for clear visualization
-data_min_c_10_3 <- data %>% filter(clonalrate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999", "0.9999"))
+data_min_c_10_3 <- data %>% filter(clonalrate %in% c("0","0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999", "0.9999", "1"))
 
 
 # group by generation and calculate the median per each indices
@@ -652,10 +659,93 @@ data_grouped_g_c_10_3 <- data_min_c_10_3 %>%
   ungroup() # 
 
 
+
+
+```
+
+
+## data for mutation rate 10-4
+
+```{r, echo=FALSE}
+# Filter the data for mutation rate 10^-4
+data_mutation_10_6 <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter(Mutation_Rate == 0.000001) %>% filter (Generation %% 10 == 0) 
+
+
+
+```
+
+
+## The relation between population genetic indices, generations and clonerate for mutation rate 10^-4
+
+```{r, echo=FALSE}
+# filter the data to minimize the Clonality rates for clear visualization
+data_min_c_10_6 <- data_mutation_10_6 %>% filter(clonalrate %in% c("0","0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999", "0.9999","1"))
+
+# group by generation and calculate the median per each indices
+data_grouped_g_c_10_6 <- data_min_c_10_6 %>%
+  group_by(Generation, clonalrate) %>%
+  summarise(
+    Mean_FIS_Tot = median(Mean_FIS_Tot, na.rm = TRUE),
+    Var_FIS_Tot = median(Var_FIS_Tot, na.rm = TRUE),
+    Mean_He_Tot = median(Mean_He_Tot, na.rm = TRUE),
+    Mean_Ho_Tot = median(Mean_Ho_Tot, na.rm = TRUE),
+    R_Tot = median(R_Tot, na.rm = TRUE),
+    Pareto_beta_Tot = median(Pareto_beta_Tot, na.rm = TRUE)
+  ) %>%
+  ungroup() # 
+
+```
+
+```{r}
+# 1) Compute common limits across the two mutation-rate datasets
+range_Mean_FIS <- range(
+  c(data_grouped_g_c_10_3$Mean_FIS_Tot,
+    data_grouped_g_c_10_6$Mean_FIS_Tot),
+  na.rm = TRUE
+)
+
+#range_Var_FIS <- range(
+#  c(data_grouped_g_c_10_3$Var_FIS_Tot,
+#    data_grouped_g_c_10_6$Var_FIS_Tot),
+#  na.rm = TRUE
+#)
+
+range_Mean_He <- range(
+  c(data_grouped_g_c_10_3$Mean_He_Tot,
+    data_grouped_g_c_10_6$Mean_He_Tot),
+  na.rm = TRUE
+)
+
+range_Mean_Ho <- range(
+  c(data_grouped_g_c_10_3$Mean_Ho_Tot,
+    data_grouped_g_c_10_6$Mean_Ho_Tot),
+  na.rm = TRUE
+)
+
+range_R <- range(
+  c(data_grouped_g_c_10_3$R_Tot,
+    data_grouped_g_c_10_6$R_Tot),
+  na.rm = TRUE
+)
+
+range_Pareto_beta <- range(
+  c(data_grouped_g_c_10_3$Pareto_beta_Tot,
+    data_grouped_g_c_10_6$Pareto_beta_Tot),
+  na.rm = TRUE
+)
+
+
+
+```
+
+
+
+```{r}
+
 # Plot mean FIS by Clonality rate and generation
 plot_Mean_FIS_10_3 <-  ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_FIS_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression("Mean("*italic(F)[IS]*")")) +
+  scale_fill_viridis_c(option = "viridis",limits = range_Mean_FIS, name = expression("Mean("*italic(F)[IS]*")")) +
   labs(
     y = "Clonality rate",
   ) +
@@ -690,10 +780,10 @@ plot_Var_FIS_10_3 <- ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generation)
   )
 
 
- # Plot mean He by Clonality rate and generation
+# Plot mean He by Clonality rate and generation
 plot_Mean_He_10_3 <- ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_He_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression(italic(H)[e])) +
+  scale_fill_viridis_c(option = "viridis",limits = range_Mean_He , name = expression(italic(H)[e])) +
   labs(
     y = "Clonality rate",
   ) +
@@ -712,7 +802,7 @@ plot_Mean_He_10_3 <- ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generation)
 # Plot mean Ho by Clonality rate and generation
 plot_Mean_Ho_10_3 <- ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_Ho_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression(italic(H)[o])) +
+  scale_fill_viridis_c(option = "viridis",limits = range_Mean_Ho , name = expression(italic(H)[o])) +
   labs(
     y = "Clonality rate",
   ) +
@@ -730,7 +820,7 @@ plot_Mean_Ho_10_3 <- ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generation)
 # Plot R by Clonality rate and generation
 plot_R_10_3 <-  ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = R_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression(italic(R))) +
+  scale_fill_viridis_c(option = "viridis",limits = range_R, name = expression(italic(R))) +
   labs(
     x = "Generation",
     y = "Clonality rate",
@@ -750,7 +840,7 @@ plot_R_10_3 <-  ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generation), y =
 # Plot Pareto beta by Clonality rate and generation
 plot_Pareto_beta_10_3 <- ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Pareto_beta_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression(italic("Pareto " * beta))) +
+  scale_fill_viridis_c(option = "viridis",limits = range_Pareto_beta, name = expression(italic("Pareto " * beta))) +
   labs(
     y = "Clonality rate",
   ) +
@@ -765,44 +855,16 @@ plot_Pareto_beta_10_3 <- ggplot(data_grouped_g_c_10_3, aes(x = as.factor(Generat
     axis.title.y = element_text(margin = margin(r = 10))
   )
 
-```
-
-
-## data for mutation rate 10-4
-
-```{r, echo=FALSE}
-# Filter the data for mutation rate 10^-4
-data_mutation_10_4 <- data_dif_mutation %>% filter(Nb_alleles_tot == "4") %>% filter(Mutation_Rate == 0.000001) %>% filter (Generation %% 10 == 0) 
 
 
 
-```
 
-
-## The relation between population genetic indices, generations and clonerate for mutation rate 10^-4
-
-```{r, echo=FALSE}
-# filter the data to minimize the Clonality rates for clear visualization
-data_min_c_10_4 <- data_mutation_10_4 %>% filter(clonalrate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999", "0.9999"))
-
-# group by generation and calculate the median per each indices
-data_grouped_g_c_10_4 <- data_min_c_10_4 %>%
-  group_by(Generation, clonalrate) %>%
-  summarise(
-    Mean_FIS_Tot = median(Mean_FIS_Tot, na.rm = TRUE),
-    Var_FIS_Tot = median(Var_FIS_Tot, na.rm = TRUE),
-    Mean_He_Tot = median(Mean_He_Tot, na.rm = TRUE),
-    Mean_Ho_Tot = median(Mean_Ho_Tot, na.rm = TRUE),
-    R_Tot = median(R_Tot, na.rm = TRUE),
-    Pareto_beta_Tot = median(Pareto_beta_Tot, na.rm = TRUE)
-  ) %>%
-  ungroup() # 
-
+# plot mutation rate 10^-6
 
 # Plot mean FIS by Clonality rate and generation
-plot_Mean_FIS_10_4 <-  ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_FIS_Tot)) +
+plot_Mean_FIS_10_6 <-  ggplot(data_grouped_g_c_10_6, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_FIS_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression("Mean("*italic(F)[IS]*")")) +
+  scale_fill_viridis_c(option = "viridis",limits = range_Mean_FIS, name = expression("Mean("*italic(F)[IS]*")")) +
   labs(
     y = "Clonality rate",
   ) +
@@ -820,7 +882,7 @@ plot_Mean_FIS_10_4 <-  ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generatio
 
 
 # Plot variance of FIS by Clonality rate and generation
-plot_Var_FIS_10_4 <- ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Var_FIS_Tot)) +
+plot_Var_FIS_10_6 <- ggplot(data_grouped_g_c_10_6, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Var_FIS_Tot)) +
   geom_tile() +
   scale_fill_viridis_c(option = "viridis", name = expression("Var("*italic(F)[IS]*")")) +
   labs(
@@ -840,9 +902,9 @@ plot_Var_FIS_10_4 <- ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation)
 
 
  # Plot mean He by Clonality rate and generation
-plot_Mean_He_10_4 <- ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_He_Tot)) +
+plot_Mean_He_10_6 <- ggplot(data_grouped_g_c_10_6, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_He_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression(italic(H)[e])) +
+  scale_fill_viridis_c(option = "viridis",limits = range_Mean_He, name = expression(italic(H)[e])) +
   labs(
     y = "Clonality rate",
   ) +
@@ -860,9 +922,9 @@ plot_Mean_He_10_4 <- ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation)
 
 
 # Plot mean Ho by Clonality rate and generation
-plot_Mean_Ho_10_4  <- ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_Ho_Tot)) +
+plot_Mean_Ho_10_6  <- ggplot(data_grouped_g_c_10_6, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Mean_Ho_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression(italic(H)[o])) +
+  scale_fill_viridis_c(option = "viridis",limits = range_Mean_Ho, name = expression(italic(H)[o])) +
   labs(
     y = "Clonality rate",
   ) +
@@ -879,9 +941,9 @@ plot_Mean_Ho_10_4  <- ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation
   )
 
 # Plot R by Clonality rate and generation
-plot_R_10_4 <-  ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = R_Tot)) +
+plot_R_10_6 <-  ggplot(data_grouped_g_c_10_6, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = R_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression(italic(R))) +
+  scale_fill_viridis_c(option = "viridis",limits = range_R, name = expression(italic(R))) +
   labs(
     x = "Generation",
     y = "Clonality rate",
@@ -901,9 +963,9 @@ plot_R_10_4 <-  ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation), y =
 
 
 # Plot Pareto beta by Clonality rate and generation
-plot_Pareto_beta_10_4 <- ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Pareto_beta_Tot)) +
+plot_Pareto_beta_10_6 <- ggplot(data_grouped_g_c_10_6, aes(x = as.factor(Generation), y = as.factor(clonalrate), fill = Pareto_beta_Tot)) +
   geom_tile() +
-  scale_fill_viridis_c(option = "viridis", name = expression(italic("Pareto " * beta))) +
+  scale_fill_viridis_c(option = "viridis",limits = range_Pareto_beta, name = expression(italic("Pareto " * beta))) +
   labs(
     y = "Clonality rate",
   ) +
@@ -923,11 +985,19 @@ plot_Pareto_beta_10_4 <- ggplot(data_grouped_g_c_10_4, aes(x = as.factor(Generat
 
 
 ```{r, echo=FALSE}
-# Combine the plots 
-combined_pop_indices_generations_heatmap <- plot_grid (plot_Mean_FIS_10_3, plot_Mean_FIS_10_4, plot_Var_FIS_10_3, 
-                                                       plot_Var_FIS_10_4, plot_Mean_He_10_3,plot_Mean_He_10_4, plot_R_10_3, plot_R_10_4,
-                                                        label_size = 12, labels = c("a", "b", "c", "d","e","f","g","h"), ncol = 2)
 
+# Combine the plots 
+combined_pop_indices_generations_heatmap <- plot_grid(
+  plot_Mean_FIS_10_3, plot_Mean_FIS_10_6, 
+  plot_Var_FIS_10_3, plot_Var_FIS_10_6, 
+  plot_Mean_He_10_3, plot_Mean_He_10_6, 
+  plot_R_10_3, plot_R_10_6,
+  label_size = 12, 
+  labels = c("a", "b", "c", "d", "e", "f", "g", "h"), 
+  ncol = 2, 
+  align = "hv",
+  axis = "tblr"  # Align top, bottom, left, right axes
+)
 
 combined_pop_indices_generations_heatmap
 
@@ -936,8 +1006,8 @@ combined_pop_indices_generations_heatmap
 ggsave(
   filename = "combined_pop_indices_plot_heatmap.png",
   plot = combined_pop_indices_generations_heatmap,
-  width = 30,  
-  height = 20,  
+  width = 35,  
+  height = 30,  
   units = "cm",
   dpi = 1200
 )
@@ -1066,7 +1136,7 @@ merged_slope_parsed_df <- merge(
 selected_clonalrates <- c("0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999","0.9999")
 
 
-
+# Create a new data frame with only the selected Clonality rates mutation rate 10^-3 and generation 6000
 merged_slope_parsed_data <- merged_slope_parsed_df %>%
   filter(clonalrate %in% selected_clonalrates)
 
@@ -1080,6 +1150,7 @@ merged_slope_parsed_data <- dplyr::select(merged_slope_parsed_data,
    -Number_fixed_loci_Tot,
    -Number_Genotypes_Tot
 )
+
 ```
 
 # Plot R^2 and slope for each Clonality rate
@@ -1271,7 +1342,7 @@ combined_r2_slope_age_plot
 ```
 
 
-## spearman correlation using merged_slope_parsed_data
+## spearman correlation using merged_slope_parsed_data for mutation rate 10^-4 and generation 6000
 
 ```{r, echo=FALSE}
 # Prepare numeric-only data (exclude categorical variables)
@@ -1301,7 +1372,7 @@ Spearman_correlation_plot <- corrplot(cor_matrix,
                                      mar = c(0,0,1,0),
                                      bg = "white",
                                      number.cex = 0.7,                # Reduced coefficient text size
-                                     col = viridis(200, option = "D"),  # Colorblind-friendly palette
+                                     col = COL2('RdYlBu', 200),  # Colorblind-friendly palette
                                      tl.srt = 45,                     # Rotate labels for better readability
                                      cl.cex = 0.8,                    # Color legend text size
                                      cl.ratio = 0.2)                 # Color legend width
@@ -1315,6 +1386,126 @@ dev.off()
 
 ```
 
+
+## spearman correlation using merged_slope_parsed_data for mutation rate 10^-6 and generation 6000 for spearman correlation ### we be used as supplementary figure SX
+
+```{r}
+# Step 1: Parse the age distribution column for generation 6000
+parsed_data_g_10_6 <- data_mutation_10_6%>%
+  filter(Generation == 6000) %>%
+  filter(clonalrate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999", "0.9999")) %>%
+  rowwise() %>%
+  mutate(parsed_list = strsplit(gsub("[{}]", "", List_distribution_gen_clonal_genotypes), ", ")) %>%
+  unnest(parsed_list) %>%
+  separate(parsed_list, into = c("Age", "Count"), sep = ":") %>%
+  mutate(
+    Age   = as.numeric(Age),
+    Count = as.numeric(Count)
+  ) %>%
+  ungroup()
+
+# Step 2: Calculate R² and slope for each replicate and clonality rate
+r2_results_10_6 <- data.frame(clonalrate = character(), Replicate = integer(),
+                               R2 = numeric(), slope = numeric(),
+                               stringsAsFactors = FALSE)
+
+unique_clonal_rates_10_6 <- unique(parsed_data_g_10_6$clonalrate)
+
+for (clonal_rate in unique_clonal_rates_10_6) {
+  parsed_data_clonal <- parsed_data_g_10_6%>%
+    filter(clonalrate == clonal_rate) %>%
+    mutate(log_Count = log(Count))
+
+  for (replicate in unique(parsed_data_clonal$Replicate)) {
+    replicate_data <- parsed_data_clonal %>% filter(Replicate == replicate)
+
+    if (nrow(replicate_data) > 1) {
+      lm_fit <- lm(log_Count ~ Age, data = replicate_data)
+      r2    <- summary(lm_fit)$r.squared
+      slope <- coef(lm_fit)["Age"]
+    } else {
+      r2    <- NA
+      slope <- NA
+    }
+    r2_results_10_6 <- rbind(r2_results_10_6,
+                              data.frame(clonalrate = clonal_rate,
+                                         Replicate  = replicate,
+                                         R2         = r2,
+                                         slope      = slope))
+  }
+}
+
+# Remove NA rows
+r2_results_10_6 <- r2_results_10_6%>% filter(!is.na(R2)) %>% filter(!is.na(slope))
+
+# Step 3: Calculate age summary statistics (Max, Median, Var) per replicate
+age_stats_10_6 <- parsed_data_g_10_6%>%
+  group_by(clonalrate, Replicate) %>%
+  summarise(
+    Max_Age    = max(Age, na.rm = TRUE),
+    Median_Age = median(Age, na.rm = TRUE),
+    Var_Age    = var(Age, na.rm = TRUE),
+    .groups    = "drop"
+  )
+
+# Step 4: Filter the raw data at generation 6000 for the selected clonality rates
+data_6000_10_6 <- data_mutation_10_6%>%
+  filter(Generation == 6000) %>%
+  filter(clonalrate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", "0.95", "0.98", "0.99", "0.999", "0.9999"))
+
+# Step 5: Merge all datasets together
+r2_results_10_6$clonalrate   <- as.character(r2_results_10_6$clonalrate)
+data_6000_10_6$clonalrate    <- as.character(data_6000_10_6$clonalrate)
+age_stats_10_6$clonalrate    <- as.character(age_stats_10_6$clonalrate)
+
+merged_1_10_6 <- merge(r2_results_10_6, data_6000_10_6, by = c("clonalrate", "Replicate"))
+
+merged_slope_parsed_df_10_6 <- merge(merged_1_10_6, age_stats_10_6, by = c("clonalrate", "Replicate"))
+
+# Step 6: Keep only selected clonality rates and remove irrelevant columns
+
+merged_slope_parsed_data_10_6 <- merged_slope_parsed_df_10_6%>%
+  filter(clonalrate %in% selected_clonalrates) %>%
+  dplyr::select(
+    -List_distribution_gen_clonal_genotypes,
+    -Generation,
+    -Mutation_Rate,
+    -Nb_alleles_tot,
+    -Number_alleles_Tot,
+    -Number_fixed_loci_Tot,
+    -Number_Genotypes_Tot
+  )
+
+# Step 7: Compute and plot the Spearman correlation matrix
+cor_data_10_6 <- merged_slope_parsed_data_10_6%>%
+  dplyr::select(-clonalrate, -Replicate)
+
+cor_matrix_10_6 <- cor(cor_data_10_6, method = "spearman", use = "pairwise.complete.obs")
+
+colnames(cor_matrix_10_6) <- c("R²", "Slope", "Mean (He)", "Mean (Ho)", "Mean (FIS)",
+                                "Var (FIS)", "R", "Pareto β", "Max (Age)", "Median (Age)", "Var (Age)")
+rownames(cor_matrix_10_6) <- colnames(cor_matrix_10_6)
+
+# Save and plot
+file_path_10_6 <- "Spearman_correlation_plot_10_6.png"
+png(height = 20, width = 20, file = file_path_10_6, units = "cm", res = 1200, bg = "white")
+
+corrplot(cor_matrix_10_6,
+         method      = "color",
+         type        = "upper",
+         tl.cex      = 0.9,
+         addCoef.col = "black",
+         tl.col      = "black",
+         mar         = c(0, 0, 1, 0),
+         bg          = "white",
+         number.cex  = 0.7,
+         col         = COL2('RdYlBu', 200),
+         tl.srt      = 45,
+         cl.cex      = 0.8,
+         cl.ratio    = 0.2)
+
+dev.off()
+```
 
 
 
